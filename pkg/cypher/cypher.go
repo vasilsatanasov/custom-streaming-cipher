@@ -13,9 +13,10 @@ const (
 )
 
 type Cypher struct {
-	lsfrs       [4]lfsr.LFSR
-	key         int64
-	nextKeyPos  int
+	lsfrs      [4]lfsr.LFSR
+	key        int64
+	nextKeyPos int
+	// for debug purposes only
 	keySequence string
 }
 
@@ -57,7 +58,12 @@ func (c *Cypher) encodeByte(b byte) byte {
 }
 
 func (c *Cypher) tick() uint8 {
-	b := c.lsfrs[0].NextBit() ^ c.lsfrs[1].NextBit() ^ c.lsfrs[2].NextBit() ^ c.lsfrs[3].NextBit()
+	l1 := c.lsfrs[0].NextBit()
+	l2 := c.lsfrs[1].NextBit()
+	l3 := c.lsfrs[2].NextBit()
+	l4 := c.lsfrs[3].NextBit()
+
+	b := ((l1 & l2) ^ (l1 & l3) ^ (l1 & l4) ^ (l2 & l3) ^ (l2 & l4) ^ (l3 & l4)) & 1
 	k := uint8((c.key >> int64(c.nextKeyPos)) & 1)
 	c.nextKeyPos = (c.nextKeyPos + 1) % 64
 	return b ^ k

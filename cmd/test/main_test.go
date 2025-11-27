@@ -61,7 +61,6 @@ func TestCypherEncodeDecode(t *testing.T) {
 
 	fmt.Println(c.GetKeySequence())
 	fmt.Printf("%v\n", len(c.GetKeySequence()))
-	//fmt.Println(c1.GetKeySequence())
 
 }
 
