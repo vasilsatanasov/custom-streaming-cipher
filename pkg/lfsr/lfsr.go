@@ -17,6 +17,7 @@ func New(state uint) LFSR {
 			taps = append(taps, idx)
 		}
 	}
+
 	return LFSR{
 		state: uint8(state),
 		taps:  taps,
@@ -26,12 +27,8 @@ func New(state uint) LFSR {
 func (l *LFSR) NextBit() uint8 {
 	nextBit := l.state & 1
 	feedback := uint8(0)
-	for i := l.taps[1]; i < len(l.taps); i++ {
+	for i := 0; i < len(l.taps); i++ {
 		tapPos := 7 - l.taps[i]
-		if tapPos == 7 {
-			continue
-		}
-
 		feedback ^= uint8((l.state >> uint8(tapPos)) & 1)
 	}
 

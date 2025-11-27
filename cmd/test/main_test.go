@@ -12,7 +12,7 @@ func TestEncoded(t *testing.T) {
 	x := 0b10110
 	y := 0 | (x >> 1)
 	fmt.Printf("%b\n", y)
-	// x^8 + x^4 + x^3 + x^2 + 1
+	// x^7 + x^4 + x^3 + x^2 + 1
 	theLfsr := lfsr.New(0b00011101)
 	fmt.Println(theLfsr.ToString())
 	for range 100 {
