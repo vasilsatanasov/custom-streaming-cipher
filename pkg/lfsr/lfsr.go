@@ -24,16 +24,21 @@ func New(state uint) LFSR {
 }
 
 func (l *LFSR) NextBit() uint8 {
-
-	nextBit := uint8((l.state >> uint8(l.taps[0])) & 1)
+	nextBit := l.state & 1
+	feedback := uint8(0)
 	for i := l.taps[1]; i < len(l.taps); i++ {
-		nextBit ^= uint8((l.state >> uint8(l.taps[i])) & 1)
+		tapPos := 7 - l.taps[i]
+		if tapPos == 7 {
+			continue
+		}
+
+		feedback ^= uint8((l.state >> uint8(tapPos)) & 1)
 	}
 
 	l.state = l.state >> 1
-	l.state |= uint8(nextBit) << 7
+	l.state |= uint8(feedback) << 7
 
-	return uint8(nextBit)
+	return nextBit
 }
 
 func (l *LFSR) ToString() string {

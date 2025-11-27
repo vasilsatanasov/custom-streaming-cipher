@@ -3,8 +3,8 @@ package test
 import (
 	"fmt"
 	"testing"
-	"vsatanasov/custom-streamon-algorithm/pkg/cypher"
-	"vsatanasov/custom-streamon-algorithm/pkg/lfsr"
+	"vsatanasov/custom-streaming-algorithm/pkg/cipher"
+	"vsatanasov/custom-streaming-algorithm/pkg/lfsr"
 )
 
 func TestEncoded(t *testing.T) {
@@ -24,27 +24,27 @@ func TestEncoded(t *testing.T) {
 
 }
 
-func TestCypherCreate(t *testing.T) {
+func TestCipherCreate(t *testing.T) {
 	pass := []byte("abcd")
-	c := cypher.New(pass)
+	c := cipher.New(pass)
 	if c == nil {
-		t.Error("Could not crate cypher")
+		t.Error("Could not crate Cipher")
 	}
 
 	if len(c.GetRegisters()) != 4 {
-		t.Error("Cypher must have 4 registers")
+		t.Error("Cipher must have 4 registers")
 	}
 
 	if c.GetKey() == 0 {
-		t.Error("Cypher must have nonzero key")
+		t.Error("Cipher must have nonzero key")
 	}
 
 }
 
-func TestCypherEncodeDecode(t *testing.T) {
+func TestCipherEncodeDecode(t *testing.T) {
 	pass := []byte("abcdefgh")
-	c := cypher.New(pass)
-	c1 := cypher.New(pass)
+	c := cipher.New(pass)
+	c1 := cipher.New(pass)
 
 	msg := []byte("Az obicham mach i boza")
 	fmt.Printf("%v\n", len(msg)*8)
@@ -52,11 +52,11 @@ func TestCypherEncodeDecode(t *testing.T) {
 	decoded := c1.Encode(encoded)
 
 	if string(encoded) == string(msg) {
-		t.Error("Cypher is not encoding")
+		t.Error("Cipher is not encoding")
 	}
 
 	if string(msg) != string(decoded) {
-		t.Error("Cypher is not working")
+		t.Error("Cipher is not working")
 	}
 
 	fmt.Println(c.GetKeySequence())

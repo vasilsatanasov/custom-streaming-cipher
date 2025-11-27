@@ -1,8 +1,8 @@
-package cypher
+package cipher
 
 import (
 	"strconv"
-	"vsatanasov/custom-streamon-algorithm/pkg/lfsr"
+	"vsatanasov/custom-streaming-algorithm/pkg/lfsr"
 )
 
 const (
@@ -12,7 +12,7 @@ const (
 	poly4 = 0b10010001
 )
 
-type Cypher struct {
+type Cipher struct {
 	lsfrs      [4]lfsr.LFSR
 	key        int64
 	nextKeyPos int
@@ -20,19 +20,19 @@ type Cypher struct {
 	keySequence string
 }
 
-func (c *Cypher) GetRegisters() [4]lfsr.LFSR {
+func (c *Cipher) GetRegisters() [4]lfsr.LFSR {
 	return c.lsfrs
 }
 
-func (c *Cypher) GetKey() int64 {
+func (c *Cipher) GetKey() int64 {
 	return c.key
 }
 
-func (c *Cypher) GetKeySequence() string {
+func (c *Cipher) GetKeySequence() string {
 	return c.keySequence
 }
 
-func (c *Cypher) Encode(message []byte) []byte {
+func (c *Cipher) Encode(message []byte) []byte {
 	result := make([]byte, 0)
 	for i := range message {
 		r := c.encodeByte(message[i])
@@ -42,7 +42,7 @@ func (c *Cypher) Encode(message []byte) []byte {
 	return result
 }
 
-func (c *Cypher) encodeByte(b byte) byte {
+func (c *Cipher) encodeByte(b byte) byte {
 	b1 := byte(0)
 
 	for i := 7; i >= 0; i-- {
@@ -57,7 +57,7 @@ func (c *Cypher) encodeByte(b byte) byte {
 	return b1
 }
 
-func (c *Cypher) tick() uint8 {
+func (c *Cipher) tick() uint8 {
 	l1 := c.lsfrs[0].NextBit()
 	l2 := c.lsfrs[1].NextBit()
 	l3 := c.lsfrs[2].NextBit()
@@ -69,9 +69,9 @@ func (c *Cypher) tick() uint8 {
 	return b ^ k
 }
 
-func New(key []byte) *Cypher {
+func New(key []byte) *Cipher {
 	k := keyFromBytes(key)
-	return &Cypher{
+	return &Cipher{
 		lsfrs: [4]lfsr.LFSR{
 			lfsr.New(poly1),
 			lfsr.New(poly2),
