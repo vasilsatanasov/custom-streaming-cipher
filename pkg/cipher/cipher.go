@@ -46,7 +46,7 @@ func (c *Cipher) encodeByte(b byte) byte {
 	b1 := byte(0)
 
 	for i := 7; i >= 0; i-- {
-		bit := c.tick()
+		bit := c.Тick()
 		c.keySequence += strconv.Itoa(int(bit & 1))
 		b1 |= (((b >> i) & 1) ^ bit)
 		if i > 0 {
@@ -57,7 +57,7 @@ func (c *Cipher) encodeByte(b byte) byte {
 	return b1
 }
 
-func (c *Cipher) tick() uint8 {
+func (c *Cipher) Тick() uint8 {
 	l1 := c.lsfrs[0].NextBit()
 	l2 := c.lsfrs[1].NextBit()
 	l3 := c.lsfrs[2].NextBit()
