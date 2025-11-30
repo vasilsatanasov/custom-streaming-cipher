@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,7 +11,10 @@ import (
 func main() {
 	args := os.Args[1:]
 	if len(args) < 3 {
-		panic("3 arguments must be provided: key for the cipher and lenght in bits of generate PSR")
+		panic(`3 arguments must be provided: 
+		 - key for the cipher 
+		 - the lenght in bits of generate PSR
+		 - the output file destination`)
 	}
 	key := args[0]
 	size, err := strconv.Atoi(args[1])
@@ -25,35 +29,35 @@ func main() {
 	}
 
 	defer file.Close()
-
-	c := cipher.New([]byte(key))
+	iv := rand.Text()
+	c := cipher.New([]byte(key), []byte(iv))
 
 	curentSize := 0
 	currentByte := byte(0)
 	currentByteIndex := 0
 	totalBytesWritten := 0
+	buffer := make([]byte, 0, 1024)
 	for curentSize < size {
 		b := c.Тick()
 		currentByte = (currentByte << 1) | (b & 1)
 		currentByteIndex++
 		if currentByteIndex == 8 {
-			//fmt.Printf("%b\n", currentByte)
-			n, err := file.Write([]byte{currentByte})
-			if err != nil {
-				panic("Could not write to file")
-			}
+			buffer = append(buffer, currentByte)
 			currentByte = byte(0)
 			currentByteIndex = 0
-			totalBytesWritten += n
 		} else if curentSize == size-1 {
 			currentByte <<= (7 - currentByteIndex)
-			//fmt.Printf("%b\n", currentByte)
-			n1, err := file.Write([]byte{currentByte})
+			buffer = append(buffer, currentByte)
+		}
+		if len(buffer) == 1024 || curentSize == size-1 {
+			n, err := file.Write(buffer)
+			buffer = make([]byte, 0, 1024)
 			if err != nil {
 				panic("Could not write to file")
 			}
-			totalBytesWritten += n1
+			totalBytesWritten += n
 		}
+
 		curentSize++
 	}
 

@@ -1,7 +1,7 @@
 package cipher
 
 import (
-	"strconv"
+	"crypto/sha256"
 	"vsatanasov/custom-streaming-algorithm/pkg/lfsr"
 )
 
@@ -16,8 +16,6 @@ type Cipher struct {
 	lsfrs      [4]lfsr.LFSR
 	key        int64
 	nextKeyPos int
-	// for debug purposes only
-	keySequence string
 }
 
 func (c *Cipher) GetRegisters() [4]lfsr.LFSR {
@@ -26,10 +24,6 @@ func (c *Cipher) GetRegisters() [4]lfsr.LFSR {
 
 func (c *Cipher) GetKey() int64 {
 	return c.key
-}
-
-func (c *Cipher) GetKeySequence() string {
-	return c.keySequence
 }
 
 func (c *Cipher) Encode(message []byte) []byte {
@@ -47,7 +41,6 @@ func (c *Cipher) encodeByte(b byte) byte {
 
 	for i := 7; i >= 0; i-- {
 		bit := c.Тick()
-		c.keySequence += strconv.Itoa(int(bit & 1))
 		b1 |= (((b >> i) & 1) ^ bit)
 		if i > 0 {
 			b1 = b1 << 1
@@ -69,32 +62,47 @@ func (c *Cipher) Тick() uint8 {
 	return b ^ k
 }
 
-func New(key []byte) *Cipher {
-	k := keyFromBytes(key)
-	return &Cipher{
-		lsfrs: [4]lfsr.LFSR{
-			lfsr.New(poly1),
-			lfsr.New(poly2),
-			lfsr.New(poly3),
-			lfsr.New(poly4),
-		},
-		key:         k,
-		nextKeyPos:  0,
-		keySequence: "",
+func (c *Cipher) warmup() {
+	for range 100 {
+		c.Тick()
 	}
 }
 
-func keyFromBytes(bytes []byte) int64 {
-	if len(bytes) < 4 {
-		panic("Key must be at least 4 bytes")
+func New(key []byte, iv []byte) *Cipher {
+	if len(key) < 4 || len(key) > 8 {
+		panic("Key must be 4 - 8 bytes")
 	}
+	k := Int64FromBytes(key)
+	sha := sha256.Sum256(iv)
 
+	vectors := sha[0:4]
+	states := make([]uint, 0, 4)
+	for _, v := range vectors {
+		states = append(states, uint(Int64FromBytes([]byte{v})))
+	}
+	cph := &Cipher{
+		lsfrs: [4]lfsr.LFSR{
+			lfsr.New(states[0], poly1),
+			lfsr.New(states[1], poly2),
+			lfsr.New(states[2], poly3),
+			lfsr.New(states[3], poly4),
+		},
+		key:        k,
+		nextKeyPos: 0,
+	}
+	cph.warmup()
+
+	return cph
+}
+
+func Int64FromBytes(bytes []byte) int64 {
 	key := int64(0)
-	for i := 3; i >= 0; i-- {
+	for i := range bytes {
 		b := bytes[i]
-		for j := 7; j >= 0; j-- {
-			key |= int64((b >> j) & 1)
-			key = key << 1
+		key |= int64(b)
+
+		if i != len(bytes)-1 {
+			key <<= 8
 		}
 	}
 
