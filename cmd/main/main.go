@@ -3,8 +3,9 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"os"
-	"strconv"
+	"time"
 	"vsatanasov/custom-streaming-algorithm/pkg/cipher"
 )
 
@@ -13,54 +14,47 @@ func main() {
 	if len(args) < 3 {
 		panic(`3 arguments must be provided: 
 		 - key for the cipher 
-		 - the lenght in bits of generate PSR
+		 - the input file destination
 		 - the output file destination`)
 	}
 	key := args[0]
-	size, err := strconv.Atoi(args[1])
+
+	inPath := args[1]
+	inFile, err := os.Open(inPath)
 	if err != nil {
-		panic(fmt.Sprintf("Invalid value for PSR length: %v", args[1]))
+		panic(fmt.Sprintf("Could not open file %s", inPath))
 	}
 
-	filePath := args[2]
-	file, err := os.Create(filePath)
+	defer inFile.Close()
+
+	outPath := args[2]
+	outFile, err := os.Create(outPath)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create file %s", filePath))
+		panic(fmt.Sprintf("Could not create file %s", inPath))
 	}
 
-	defer file.Close()
+	defer outFile.Close()
 	iv := rand.Text()
+	t := time.Now()
 	c := cipher.New([]byte(key), []byte(iv))
 
-	curentSize := 0
-	currentByte := byte(0)
-	currentByteIndex := 0
-	totalBytesWritten := 0
-	buffer := make([]byte, 0, 1024)
-	for curentSize < size {
-		b := c.Тick()
-		currentByte = (currentByte << 1) | (b & 1)
-		currentByteIndex++
-		if currentByteIndex == 8 {
-			buffer = append(buffer, currentByte)
-			currentByte = byte(0)
-			currentByteIndex = 0
-		} else if curentSize == size-1 {
-			currentByte <<= (7 - currentByteIndex)
-			buffer = append(buffer, currentByte)
-		}
-		if len(buffer) == 1024 || curentSize == size-1 {
-			n, err := file.Write(buffer)
-			buffer = make([]byte, 0, 1024)
-			if err != nil {
-				panic("Could not write to file")
-			}
-			totalBytesWritten += n
-		}
+	buffer := make([]byte, 1024)
 
-		curentSize++
+	for {
+		_, err := inFile.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				panic(err)
+			}
+		}
+		encrypted := c.Encode(buffer)
+		outFile.Write(encrypted)
 	}
 
-	fmt.Printf("%v total bytes written\n", totalBytesWritten)
+	t1 := time.Now()
+	elapsed := t1.Sub(t)
+	fmt.Printf("Elapsed %vs", elapsed.Seconds())
 
 }

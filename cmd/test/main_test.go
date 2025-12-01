@@ -1,21 +1,12 @@
 package test
 
 import (
-	"encoding/binary"
+	"crypto/rand"
 	"fmt"
 	"testing"
 	"vsatanasov/custom-streaming-algorithm/pkg/cipher"
 	"vsatanasov/custom-streaming-algorithm/pkg/lfsr"
 )
-
-func TestKeyFromBytes(t *testing.T) {
-	key := []byte("test")
-	result := cipher.Int64FromBytes(key)
-	check := int64(binary.BigEndian.Uint32(key))
-	if result != check {
-		t.Errorf("%b and %b are not equal", result, check)
-	}
-}
 
 func TestLfsr(t *testing.T) {
 	//poly = x^7 + x^4 + x^3 + x^2 + 1
@@ -43,7 +34,8 @@ func TestLfsrWorksAsExpected(t *testing.T) {
 }
 
 func TestCipherCreate(t *testing.T) {
-	pass := []byte("abcd")
+	pass := make([]byte, 64)
+	rand.Read(pass)
 	iv := []byte("c!ph3r")
 	c := cipher.New(pass, iv)
 	if c == nil {
@@ -53,15 +45,11 @@ func TestCipherCreate(t *testing.T) {
 	if len(c.GetRegisters()) != 4 {
 		t.Error("Cipher must have 4 registers")
 	}
-
-	if c.GetKey() == 0 {
-		t.Error("Cipher must have nonzero key")
-	}
-
 }
 
 func TestCipherEncodeDecode(t *testing.T) {
-	pass := []byte("abcdefgh")
+	pass := make([]byte, 32)
+	rand.Read(pass)
 	iv := []byte("c!ph3r")
 	c := cipher.New(pass, iv)
 	c1 := cipher.New(pass, iv)

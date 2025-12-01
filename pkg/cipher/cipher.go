@@ -2,28 +2,25 @@ package cipher
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"vsatanasov/custom-streaming-algorithm/pkg/lfsr"
 )
 
 const (
-	poly1 = 0b10000011
-	poly2 = 0b10001001
-	poly3 = 0b10001111
-	poly4 = 0b10010001
+	poly1  = 0b10000011
+	poly2  = 0b10001001
+	poly3  = 0b10001111
+	poly4  = 0b10010001
+	keyLen = 32
 )
 
 type Cipher struct {
-	lsfrs      [4]lfsr.LFSR
-	key        int64
-	nextKeyPos int
+	lsfrs [4]lfsr.LFSR
+	sBox  *SBox
 }
 
 func (c *Cipher) GetRegisters() [4]lfsr.LFSR {
 	return c.lsfrs
-}
-
-func (c *Cipher) GetKey() int64 {
-	return c.key
 }
 
 func (c *Cipher) Encode(message []byte) []byte {
@@ -56,9 +53,8 @@ func (c *Cipher) Тick() uint8 {
 	l3 := c.lsfrs[2].NextBit()
 	l4 := c.lsfrs[3].NextBit()
 
-	b := ((l1 & l2) ^ (l1 & l3) ^ (l1 & l4) ^ (l2 & l3) ^ (l2 & l4) ^ (l3 & l4)) & 1
-	k := uint8((c.key >> int64(c.nextKeyPos)) & 1)
-	c.nextKeyPos = (c.nextKeyPos + 1) % 64
+	b := ((l1 & l2) ^ (l1 & l3) ^ (l1 & l4) ^ (l2 & l3) ^ (l2 & l4) ^ (l3 & l4))
+	k := majority(c.sBox.nextByte())
 	return b ^ k
 }
 
@@ -69,16 +65,18 @@ func (c *Cipher) warmup() {
 }
 
 func New(key []byte, iv []byte) *Cipher {
-	if len(key) < 4 || len(key) > 8 {
-		panic("Key must be 4 - 8 bytes")
+	if len(key) != keyLen {
+		panic(fmt.Sprintf("Key must be %d bytes", keyLen))
 	}
-	k := Int64FromBytes(key)
+
+	keySha := sha256.Sum256(key)
+	sBox := NewSbox(append(key, keySha[0:]...), 8)
 	sha := sha256.Sum256(iv)
 
 	vectors := sha[0:4]
 	states := make([]uint, 0, 4)
 	for _, v := range vectors {
-		states = append(states, uint(Int64FromBytes([]byte{v})))
+		states = append(states, uint(int64FromBytes([]byte{v})))
 	}
 	cph := &Cipher{
 		lsfrs: [4]lfsr.LFSR{
@@ -87,15 +85,14 @@ func New(key []byte, iv []byte) *Cipher {
 			lfsr.New(states[2], poly3),
 			lfsr.New(states[3], poly4),
 		},
-		key:        k,
-		nextKeyPos: 0,
+		sBox: sBox,
 	}
 	cph.warmup()
 
 	return cph
 }
 
-func Int64FromBytes(bytes []byte) int64 {
+func int64FromBytes(bytes []byte) int64 {
 	key := int64(0)
 	for i := range bytes {
 		b := bytes[i]
@@ -107,4 +104,17 @@ func Int64FromBytes(bytes []byte) int64 {
 	}
 
 	return key
+}
+
+func majority(b byte) uint8 {
+	c := 0
+	for i := range 8 {
+		c += int((b >> i) & 1)
+	}
+
+	if c >= 4 {
+		return 1
+	}
+
+	return 0
 }
