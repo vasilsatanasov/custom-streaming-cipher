@@ -6,11 +6,11 @@ import (
 
 type LFSR struct {
 	state uint8
-	taps  []int
+	taps  uint8
 }
 
 func New(state uint, polynomial uint) LFSR {
-	taps := tapsFormPolynomial(polynomial)
+	taps := tapsUint8FormPolynomial(polynomial)
 	return LFSR{
 		state: uint8(state),
 		taps:  taps,
@@ -19,13 +19,10 @@ func New(state uint, polynomial uint) LFSR {
 
 func (l *LFSR) NextBit() uint8 {
 	nextBit := l.state & 1
-	feedback := uint8(0)
-	for i := 0; i < len(l.taps); i++ {
-		feedback ^= uint8((l.state >> uint8(l.taps[i])) & 1)
-	}
-
 	l.state = l.state >> 1
-	l.state |= uint8(feedback) << 7
+	if nextBit == 1 {
+		l.state ^= l.taps
+	}
 
 	return nextBit
 }
@@ -35,7 +32,7 @@ func (l *LFSR) GetState() uint8 {
 }
 
 func (l *LFSR) ToString() string {
-	return fmt.Sprintf("state: %b\n", l.state)
+	return fmt.Sprintf("state: %b\ntaps: %b", l.state, l.taps)
 }
 
 func tapsFormPolynomial(poly uint) []int {
@@ -44,6 +41,20 @@ func tapsFormPolynomial(poly uint) []int {
 		t := (uint8(poly) >> uint8(idx)) & 1
 		if t&1 == 1 {
 			taps = append(taps, idx)
+		}
+	}
+
+	return taps
+}
+
+func tapsUint8FormPolynomial(poly uint) uint8 {
+	var taps uint8 = 0
+	for i := range 8 {
+		shift := 7 - i
+
+		taps = taps | uint8(poly>>shift)&1
+		if i != 7 {
+			taps <<= 1
 		}
 	}
 

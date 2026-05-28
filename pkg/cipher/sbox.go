@@ -7,7 +7,7 @@ type SBox struct {
 	nextRow int
 }
 
-func (s *SBox) nextByte() byte {
+func (s *SBox) NextByte() byte {
 	value := s.matrix[s.nextRow][s.nextCol]
 	nextCol := (s.nextCol + 1) % s.size
 	nextRow := s.nextRow
@@ -50,6 +50,10 @@ func makeSBox(bytes []byte, size int) [][]byte {
 	}
 
 	return sBox
+}
+
+func (s *SBox) XORAt(row, col int, b byte) {
+	s.matrix[row][col] ^= b
 }
 
 func (s *SBox) shiftColumns() {

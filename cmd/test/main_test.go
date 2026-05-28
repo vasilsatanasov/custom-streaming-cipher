@@ -1,16 +1,23 @@
 package test
 
 import (
-	"crypto/rand"
 	"fmt"
 	"testing"
 	"vsatanasov/custom-streaming-algorithm/pkg/cipher"
 	"vsatanasov/custom-streaming-algorithm/pkg/lfsr"
 )
 
+func TestBits(t *testing.T) {
+	x := 0b101
+	fmt.Printf("%b\n", x)
+	fmt.Printf("%b\n", (x>>1)&1)
+	fmt.Printf("%b\n", x&1)
+
+}
+
 func TestLfsr(t *testing.T) {
-	//poly = x^7 + x^4 + x^3 + x^2 + 1
-	theLfsr := lfsr.New(0b10101011, 0b00011101)
+	//poly = x^8 + x^7 + x^6 + x + 1
+	theLfsr := lfsr.New(0b10101011, 0b111000011)
 	fmt.Println(theLfsr.ToString())
 	for range 100 {
 		result := theLfsr.NextBit()
@@ -21,25 +28,23 @@ func TestLfsr(t *testing.T) {
 }
 
 func TestLfsrWorksAsExpected(t *testing.T) {
-	//poly = x^7 + x + 1
-	register := lfsr.New(0b10101011, 0b10000011)
+	//poly = x^8 + x^7 + x^6 + x + 1
+	register := lfsr.New(0b10101011, 0b111000011)
 	bit := register.NextBit()
 	if bit != 1 {
 		t.Error("Unexpected next bit value")
 	}
 
-	if register.GetState() != uint8(0b11010101) {
+	if register.GetState() != uint8(0b10010110) {
 		t.Errorf("Unexpected state value %b", register.GetState())
 	}
 }
 
 func TestCipherCreate(t *testing.T) {
-	pass := make([]byte, 64)
-	rand.Read(pass)
 	iv := []byte("c!ph3r")
-	c := cipher.New(pass, iv)
+	c := cipher.New(iv)
 	if c == nil {
-		t.Error("Could not crate Cipher")
+		t.Error("Could not create Cipher")
 	}
 
 	if len(c.GetRegisters()) != 4 {
@@ -48,11 +53,9 @@ func TestCipherCreate(t *testing.T) {
 }
 
 func TestCipherEncodeDecode(t *testing.T) {
-	pass := make([]byte, 32)
-	rand.Read(pass)
 	iv := []byte("c!ph3r")
-	c := cipher.New(pass, iv)
-	c1 := cipher.New(pass, iv)
+	c := cipher.New(iv)
+	c1 := cipher.New(iv)
 
 	msg := []byte("Az obicham mach i boza")
 	encoded := c.Encode(msg)
@@ -63,7 +66,40 @@ func TestCipherEncodeDecode(t *testing.T) {
 	}
 
 	if string(msg) != string(decoded) {
-		t.Error("Cipher is not working")
+		t.Error(fmt.Sprintf("Cipher is not working, Expected %s, got %s", string(msg), string(decoded)))
+	}
+}
+
+func BenchmarkSBoxNextByte(b *testing.B) {
+	sb := cipher.NewSbox(make([]byte, 256), 16)
+	b.ResetTimer()
+	for range b.N {
+		sb.NextByte()
+	}
+}
+
+func BenchmarkTick(b *testing.B) {
+	c := cipher.New([]byte("bench"))
+	b.ResetTimer()
+	for range b.N {
+		c.Тick()
+	}
+}
+
+func BenchmarkEncodeByte(b *testing.B) {
+	c := cipher.New([]byte("bench"))
+	b.ResetTimer()
+	for range b.N {
+		c.Encode([]byte{0xAB})
+	}
+}
+
+func BenchmarkEncode1KB(b *testing.B) {
+	c := cipher.New([]byte("bench"))
+	data := make([]byte, 1024)
+	b.ResetTimer()
+	for range b.N {
+		c.Encode(data)
 	}
 }
 

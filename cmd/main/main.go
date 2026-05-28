@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/rand"
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -30,27 +30,34 @@ func main() {
 	outPath := args[2]
 	outFile, err := os.Create(outPath)
 	if err != nil {
-		panic(fmt.Sprintf("Could not create file %s", inPath))
+		panic(fmt.Sprintf("Could not create file %s", outPath))
 	}
 
 	defer outFile.Close()
-	iv := rand.Text()
+
+	c := cipher.New([]byte(key))
+
+	reader := bufio.NewReaderSize(inFile, 64*1024)
+	writer := bufio.NewWriterSize(outFile, 64*1024)
+	defer writer.Flush()
+
+	buffer := make([]byte, 64*1024)
 	t := time.Now()
-	c := cipher.New([]byte(key), []byte(iv))
-
-	buffer := make([]byte, 1024)
-
 	for {
-		_, err := inFile.Read(buffer)
+		n, err := reader.Read(buffer)
+		if n > 0 {
+			encrypted := c.Encode(buffer[:n])
+			_, werr := writer.Write(encrypted)
+			if werr != nil {
+				panic(werr)
+			}
+		}
 		if err != nil {
 			if err == io.EOF {
 				break
-			} else {
-				panic(err)
 			}
+			panic(err)
 		}
-		encrypted := c.Encode(buffer)
-		outFile.Write(encrypted)
 	}
 
 	t1 := time.Now()

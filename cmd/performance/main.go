@@ -34,7 +34,7 @@ func main() {
 	nonce := []byte("123456789012")
 	t := time.Now()
 	cipher, _ := chacha20.NewUnauthenticatedCipher(key, nonce)
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, 64*1024)
 	for {
 		_, err := inFile.Read(buffer)
 		if err != nil {
